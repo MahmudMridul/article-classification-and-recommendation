@@ -1,7 +1,5 @@
 """
 json_to_parquet.py
-------------------
-Converts ArXiv JSON / JSONL data to Parquet format for ML pipelines.
 
 Keeps   : id, title, abstract, categories
 Drops   : submitter, authors, comments, journal-ref, doi, versions
