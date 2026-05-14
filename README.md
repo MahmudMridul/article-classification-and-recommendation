@@ -1,61 +1,111 @@
-# Article Classification & Recommendation
+# Scientific Article Classification & Recommendation
 
-A two-in-one ML pipeline that takes a few keywords or a paper title as input and returns:
+A two-in-one ML pipeline that takes a keyword phrase or paper title as input and returns:
 
-1. **Classification** — predicted arXiv research category (top-3 with confidence scores)
-2. **Recommendation** — most similar paper titles from the training corpus
+1. **Classification** — predicted arXiv subject category (top-k with confidence scores)
+2. **Recommendation** — most semantically similar paper titles from the training corpus
 
 ---
 
-## Project Summary
+## Overview
 
-### Architecture
+The system is built on two pretrained transformer models:
 
 | Component | Model | Purpose |
 |-----------|-------|---------|
-| Classifier | `distilbert-base-uncased` fine-tuned | Maps keyword/title → arXiv category |
-| Recommender | `all-MiniLM-L6-v2` (sentence-transformer) | Embeds titles for cosine-similarity search |
+| Classifier | `distilbert-base-uncased` (fine-tuned) | Maps title text → arXiv category |
+| Recommender | `all-MiniLM-L6-v2` (sentence-transformer) | Embeds titles for cosine similarity search |
 
-### Data
+Both components are integrated into a single inference pipeline that accepts one text query and returns structured outputs from both models.
 
-- Source: `data/data_top_20_sampled.parquet` — 47,500 arXiv papers (`id`, `title`, `abstract`, `categories`)
-- Filtering: top 20 most frequent primary categories retained → **37,855 papers**
-- Split: 75% train / 10% val / 15% test (stratified)
+---
 
-### Categories (20 classes)
+## Dataset
+
+- **Source:** arXiv metadata snapshot (JSON → Parquet)
+- **Filtering:** Top 20 most frequent primary categories retained
+- **Sampling:** Up to 2,500 papers per category → 47,500 records before cleaning
+- **After cleaning:** **37,855 papers** (missing/blank titles removed)
+- **Split:** 75% train / 10% validation / 15% test (stratified by class)
+
+### 20 Categories
 
 `astro-ph`, `astro-ph.CO`, `astro-ph.GA`, `cond-mat.mes-hall`, `cond-mat.mtrl-sci`,
 `cond-mat.stat-mech`, `cond-mat.str-el`, `cond-mat.supr-con`, `cs.AI`, `cs.CL`,
 `cs.CV`, `cs.LG`, `gr-qc`, `hep-ph`, `hep-th`, `math-ph`, `math.AP`,
 `math.CO`, `quant-ph`, `stat.ML`
 
-### Performance (test set)
+---
+
+## Results
+
+### Classification (test set — 5,678 samples)
 
 | Metric | Score |
 |--------|-------|
 | Test Accuracy | 67.65% |
+| Macro Precision | 0.66 |
+| Macro Recall | 0.65 |
 | Macro F1 | 0.65 |
 | Weighted F1 | 0.67 |
 
-Notable per-class F1: `math.CO` 0.86, `cs.CV` 0.83, `math.AP` 0.80, `cs.CL` 0.84
+**Best per-class F1:** `math.CO` 0.86 · `cs.CL` 0.84 · `cs.CV` 0.83 · `math.AP` 0.80
 
-### Project Structure
+Categories with distinctive title vocabulary (CS, math) perform well. Condensed matter subcategories score 0.48–0.55 due to overlapping terminology.
+
+### Recommendation
+
+Median top-1 cosine similarity of **0.62** over 200 diverse test queries. Results are qualitatively accurate — CS queries retrieve CS papers, astrophysics queries retrieve astrophysics papers.
+
+---
+
+## Project Structure
 
 ```
 article_classification_recommendation/
 ├── data/
-│   └── data_top_20_sampled.parquet
+│   └── data_top_20_sampled.parquet     # cleaned, sampled dataset (47,500 records)
+├── unprocessed_data/
+│   ├── arxiv-metadata-oai-snapshot.json  # raw arXiv metadata dump
+│   ├── data.parquet                      # full parsed parquet
+│   └── data_top_20.parquet              # filtered to top-20 categories (pre-sampling)
+├── data_preprocessing/
+│   ├── json_to_parquet_converter.py    # convert raw JSON snapshot to parquet
+│   ├── filter_top_categories.py        # filter to top-20 primary categories
+│   └── sample_categories.py           # stratified sample up to 2,500 per category
 ├── src/
-│   ├── __init__.py
 │   ├── data_loader.py      # load, preprocess, split, PyTorch Dataset
 │   ├── classifier.py       # DistilBERT train / eval / predict
 │   ├── recommender.py      # sentence-transformer index build / search
 │   └── pipeline.py         # unified inference (classify + recommend)
 ├── models/
-│   ├── classifier/         # saved DistilBERT weights + tokenizer + label encoder
-│   └── recommender/        # saved embedding index (pickle)
+│   ├── classifier/         # saved DistilBERT weights, tokenizer, label encoder
+│   │   ├── config.json
+│   │   ├── model.safetensors
+│   │   ├── tokenizer.json
+│   │   ├── tokenizer_config.json
+│   │   └── label_encoder.pkl
+│   └── recommender/
+│       └── index.pkl       # pre-built sentence-transformer embedding index
+├── visualizations/
+│   ├── generate_all.py                 # run all scripts below in sequence
+│   ├── fig1_system_architecture.py
+│   ├── fig2_category_distribution.py
+│   ├── fig3_title_length.py
+│   ├── fig4_data_split.py
+│   ├── fig4_pipeline_diagram.py
+│   ├── fig5_training_curves.py
+│   ├── fig6_confusion_matrix.py
+│   ├── fig7_per_class_metrics.py
+│   └── fig8_recommendation_scores.py
+├── report/
+│   ├── main.tex
+│   ├── references.bib
+│   └── figures/            # PDF figures generated by visualizations/
 ├── train.py                # training entry point
-├── test.py                 # evaluation & query entry point
+├── test.py                 # evaluation & inference entry point
+├── pyproject.toml
+├── uv.lock
 └── README.md
 ```
 
@@ -66,12 +116,12 @@ article_classification_recommendation/
 ### Requirements
 
 - Python 3.12
-- NVIDIA GPU with CUDA 12.4 (CPU fallback is automatic if no GPU is available)
+- NVIDIA GPU with CUDA 12.4 (CPU fallback is automatic)
 
 ### Install
 
 ```bash
-# Create and activate the virtual environment
+# Create and activate virtual environment
 uv venv --python 3.12 .venv
 source .venv/bin/activate
 
@@ -79,7 +129,7 @@ source .venv/bin/activate
 uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Install remaining dependencies
-uv pip install transformers sentence-transformers scikit-learn numpy pandas pyarrow tqdm accelerate
+uv pip install transformers sentence-transformers scikit-learn numpy pandas pyarrow tqdm accelerate matplotlib
 ```
 
 ---
@@ -107,23 +157,23 @@ python train.py \
 ```
 
 Training runs two phases:
-1. **Phase 1** — Fine-tunes DistilBERT on paper titles (best checkpoint saved by val accuracy)
-2. **Phase 2** — Encodes all training titles with a sentence-transformer and saves the index
+1. **Phase 1** — Fine-tunes DistilBERT on paper titles; saves best checkpoint by validation accuracy
+2. **Phase 2** — Encodes all training titles with the sentence-transformer and saves the similarity index
 
-Expected training time on RTX 3060: ~15 minutes for 5 epochs.
+Expected time on RTX 3060: ~15 minutes for 5 epochs.
 
 ---
 
-## Testing
+## Testing & Inference
 
-### Evaluate on the test set + run demo queries
+### Evaluate on the test set
 
 ```bash
 source .venv/bin/activate
 python test.py
 ```
 
-### Single query from the command line
+### Single query
 
 ```bash
 python test.py --query "black hole gravitational waves merger"
@@ -135,7 +185,7 @@ python test.py --query "black hole gravitational waves merger"
 python test.py --interactive
 ```
 
-In interactive mode, type any keywords or paper title and press Enter. Type `quit` to exit.
+Type any keywords or paper title and press Enter. Type `quit` to exit.
 
 ### Evaluation only (no queries)
 
@@ -153,15 +203,34 @@ python test.py --query "deep learning object detection" \
 
 ---
 
+## Generating Figures
+
+All paper figures are in `report/figures/`. To regenerate them:
+
+```bash
+source .venv/bin/activate
+python visualizations/generate_all.py
+```
+
+Or run a single script:
+
+```bash
+python visualizations/fig6_confusion_matrix.py
+```
+
+Scripts that need the trained models (`fig6`, `fig7`, `fig8`) require saved weights in `models/`. The remaining scripts (`fig1`–`fig5`) only need the dataset.
+
+---
+
 ## Example Output
 
 ```
 Query: deep learning image classification convolutional neural network
 
 --- Classification (Top Predicted Categories) ---
-  1. cs.CV                           confidence: 0.9850
-  2. cs.LG                           confidence: 0.0067
-  3. stat.ML                         confidence: 0.0023
+  1. cs.CV      confidence: 0.9850
+  2. cs.LG      confidence: 0.0067
+  3. stat.ML    confidence: 0.0023
 
 --- Recommendations (Most Similar Papers) ---
   [1] (sim=0.6708)  Deep Convolutional Decision Jungle for Image Classification
