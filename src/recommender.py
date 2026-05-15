@@ -60,7 +60,7 @@ def load_sbert(device: str = None):
     if device is None:
         device = get_device()
     print(f"[Recommender] Loading sentence-transformer: {SBERT_MODEL}")
-    return SentenceTransformer(SBERT_MODEL, device=device)
+    return SentenceTransformer(SBERT_MODEL, device=device, local_files_only=True)
 
 
 def recommend(query: str, model, index_data: dict, top_k: int = 5):
