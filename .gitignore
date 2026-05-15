@@ -13,3 +13,5 @@ unprocessed_data/
 data/
 models/
 presentation/
+*.md
+!README.md
