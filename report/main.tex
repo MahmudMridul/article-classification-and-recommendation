@@ -17,9 +17,7 @@
 
 \begin{document}
 
-\title{Scientific Article Classification and Semantic\\
-Recommendation Using Transformer-Based Models:\\
-A Study on the arXiv Dataset}
+\title{A Framework for Scientific Article Classification and Recommendation Using NLP and Machine Learning}
 
 \author{
 \IEEEauthorblockN{Abdullah Al Mahmud}
@@ -195,13 +193,13 @@ Figures~\ref{fig:pipeline}, \ref{fig:title_length},
 and~\ref{fig:datasplit} show the full pipeline, the title length
 distribution, and the dataset split proportions respectively.
 
-\begin{figure*}[htbp]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{figures/fig4_pipeline_diagram.pdf}
+  \includegraphics[width=\columnwidth]{figures/data_processing.png}
   \caption{Full data preprocessing and model training pipeline from
     raw arXiv JSON to final inference.}
   \label{fig:pipeline}
-\end{figure*}
+\end{figure}
 
 \begin{figure}[htbp]
   \centering
@@ -266,7 +264,7 @@ Figure~\ref{fig:architecture} shows the overall system design.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig1_system_architecture.pdf}
+  \includegraphics[width=\columnwidth]{figures/system_architecture.png}
   \caption{System architecture.  A query feeds both the DistilBERT
     classifier and the sentence-transformer recommender in parallel,
     returning category predictions and similar papers.}
@@ -297,13 +295,13 @@ peaked at 0.67 in epoch 3 and started to decline slightly after
 that, suggesting mild overfitting.  We saved the epoch-3 checkpoint
 as the final model.
 
-\begin{figure*}[htbp]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{figures/fig5_training_curves.pdf}
+  \includegraphics[width=\columnwidth]{figures/fig5_training_curves.pdf}
   \caption{Training and validation loss (left) and accuracy (right)
     across five epochs.  Best validation accuracy is at epoch 3.}
   \label{fig:training_curves}
-\end{figure*}
+\end{figure}
 
 \subsection{Classification Performance}
 
@@ -338,13 +336,13 @@ predicted well because their titles use very distinct words.
 The condensed matter subcategories are often confused with each
 other because their titles share a lot of common terminology.
 
-\begin{figure*}[htbp]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{figures/fig6_confusion_matrix.pdf}
+  \includegraphics[width=\columnwidth]{figures/fig6_confusion_matrix.pdf}
   \caption{Confusion matrix for all 20 categories on the test set.
     Rows are true labels; columns are predicted labels.}
   \label{fig:confusion}
-\end{figure*}
+\end{figure}
 
 \subsection{Per-Class Analysis}
 
@@ -392,13 +390,13 @@ subcategories also show cross-confusion for the same reason.
   \end{tabular}
 \end{table}
 
-\begin{figure*}[htbp]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{figures/fig7_per_class_metrics.pdf}
+  \includegraphics[width=\columnwidth]{figures/fig7_per_class_metrics.pdf}
   \caption{Per-class precision, recall, and F1-score for all 20
     categories, sorted by F1-score.}
   \label{fig:perclass}
-\end{figure*}
+\end{figure}
 
 \subsection{Recommendation Performance}
 
